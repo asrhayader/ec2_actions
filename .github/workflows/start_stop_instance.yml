@@ -26,7 +26,7 @@ env:
   #AWS_ASSUME_ROLE_ARN: arn:aws:iam::090739627833:role/TF-github-fh-clinical-notes-recognition
 jobs:
   start:
-    runs-on: Ubuntu
+    runs-on: ubuntu-latest
     name: Start EC2 ML Instance
     steps:
       - name: Install AWS CLI v2

@@ -62,18 +62,15 @@ jobs:
       - name: Work with EC2 instances
         id: work-with-ec2-instances
         run: |
-          export AWS_ACCESS_KEY_ID=${{ env.AWS_ACCESS_KEY_ID }}
-          export AWS_SECRET_ACCESS_KEY=${{ env.AWS_SECRET_ACCESS_KEY }}
-          export AWS_SESSION_TOKEN=${{ env.AWS_SESSION_TOKEN }}
-          export AWS_DEFAULT_REGION=${{ env.AWS_REGION }}
-          #env | grep AWS
-          #echo ""
-          #aws ec2 describe-instances --instance-ids i-035f07540cf5e1790
-          #echo ""
-          #aws ec2 describe-instances --filters=Name=tag:Name,Values=johnsnowlabsDev
+          #Check AWS env variables
+          env | grep AWS
+          
+          #configure instanceID variable
           export inputInstanceId=${{ github.event.inputs.instanceid }}
           export instanceId=${inputInstanceId:-${{ secrets.EC_INSTANCE_ID }}}
           #echo "InstanceId = $instanceId"
+
+          #Get instance state
           state=$(aws ec2 describe-instances --instance-ids=$instanceId | jq -r .Reservations[].Instances[])
           echo "Got State <<<$state>>>"  
           if [[ "$state" == "" || "$state" == "null" ]]; then
@@ -86,7 +83,16 @@ jobs:
           #  echo "No instance with ID '$instanceId' found !"; exit 1
           #fi
           echo "Got InstanceID $instanceId"  
-          echo "Got InstanceState $instanceState"  
+          echo "Got InstanceState $instanceState"
+          
+          #Check if instance is already running or stopped...
+          if [[ ${{ github.event.inputs.action }} == "START" && $instanceState == "running" ]]; then
+            echo "Instance $instanceId is already running !"; exit 0
+          elif [[ ${{ github.event.inputs.action }} == "STOP" && $instanceState == "stopped" ]]; then
+            echo "Instance $instanceId is already stopped !"; exit 0
+          fi
+
+          #Start of Stop instance
           case ${{ github.event.inputs.action }} in
             START)
               command="aws ec2 start-instances --instance-ids $instanceId"

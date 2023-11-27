@@ -75,17 +75,18 @@ jobs:
           export instanceId=${inputInstanceId:-${{ secrets.EC_INSTANCE_ID }}}
           #echo "InstanceId = $instanceId"
           state=$(aws ec2 describe-instances --instance-ids=$instanceId | jq -r .Reservations[].Instances[])
-          echo "Got State $state"  
+          echo "Got State <<<$state>>>"  
           if [[ "$state" == "" || "$state" == "null" ]]; then
             echo "No instance with ID '$instanceId' found !"; exit 1
           fi
           instanceId=${echo $state | jq -r .instanceID)
-          instanceState${echo $state | jq -r .state)
+          instanceState=${echo $state | jq -r .State.Name)
           #echo "InstanceId = $instanceId"
           #if [[ "$instanceId" == "" || "$instanceId" == "null" ]]; then
           #  echo "No instance with ID '$instanceId' found !"; exit 1
           #fi
           echo "Got InstanceID $instanceId"  
+          echo "Got InstanceState $instanceState"  
           case ${{ github.event.inputs.action }} in
             START)
               command="aws ec2 start-instances --instance-ids $instanceId"

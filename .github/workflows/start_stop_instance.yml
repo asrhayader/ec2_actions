@@ -23,7 +23,6 @@ env:
   AWS_ACCOUNT: ${{ secrets.AWS_ACCOUNT }}
   AWS_ROLE_NAME: ${{ secrets.AWS_ROLE_NAME }} 
 
-  #AWS_ASSUME_ROLE_ARN: arn:aws:iam::090739627833:role/TF-github-fh-clinical-notes-recognition
 jobs:
   start:
     runs-on: ubuntu-latest

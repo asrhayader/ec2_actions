@@ -79,8 +79,8 @@ jobs:
           if [[ "$state" == "" || "$state" == "null" ]]; then
             echo "No instance with ID '$instanceId' found !"; exit 1
           fi
-          instanceId=${echo $state | jq -r .instanceID)
-          instanceState=${echo $state | jq -r .State.Name)
+          instanceId=$(echo $state | jq -r .instanceID)
+          instanceState=$(echo $state | jq -r .State.Name)
           #echo "InstanceId = $instanceId"
           #if [[ "$instanceId" == "" || "$instanceId" == "null" ]]; then
           #  echo "No instance with ID '$instanceId' found !"; exit 1

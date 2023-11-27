@@ -1,0 +1,96 @@
+name: Start/stop EC2 ML Instance
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        type: choice
+        description: Instance Action to perform
+        options: 
+        - START
+        - STOP
+      instanceid:
+        type: string
+        description: Instance ID
+        default:
+          ""
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  AWS_ACCOUNT: ${{ secrets.AWS_ACCOUNT }}
+  AWS_ROLE_NAME: ${{ secrets.AWS_ROLE_NAME }} 
+
+  #AWS_ASSUME_ROLE_ARN: arn:aws:iam::090739627833:role/TF-github-fh-clinical-notes-recognition
+jobs:
+  start:
+    runs-on: self-hosted
+    name: Start EC2 ML Instance
+    steps:
+      - name: Install AWS CLI v2
+        id: Install-aws-cli
+        run: |
+          arc=`uname -m`
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-$arc.zip" -o /tmp/awscliv2.zip
+          unzip -q /tmp/awscliv2.zip -d /tmp
+          rm /tmp/awscliv2.zip
+          sudo /tmp/aws/install --update
+          rm -rf /tmp/aws/
+
+#      - name: Configure AWS credentials
+#        uses: aws-actions/configure-aws-credentials@v2
+#        with:
+#          role-to-assume: ${{env.AWS_ASSUME_ROLE_ARN}}
+#          aws-region: ${{env.AWS_REGION}}
+
+      - name: Configure AWS credentials
+        id: configure-aws-credentials
+        run: |
+          export AWS_ASSUME_ROLE_ARN="arn:aws:iam::${{ env.AWS_ACCOUNT }}:role/${{ env.AWS_ROLE_NAME }}"
+          token=$(curl -s -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" | jq -r .value)
+          #echo "Token=$token"
+          credentials=$(aws sts assume-role-with-web-identity --region us-east-1 --role-arn $AWS_ASSUME_ROLE_ARN --role-session-name test --web-identity-token $token | jq .Credentials)
+          AccessKeyId=$(echo $credentials | jq -r .AccessKeyId) 
+          SecretAccessKey=$(echo $credentials | jq -r .SecretAccessKey) 
+          SessionToken=$(echo $credentials | jq -r .SessionToken)
+          echo "AWS_ACCESS_KEY_ID=$AccessKeyId" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=$SecretAccessKey" >> $GITHUB_ENV
+          echo "AWS_SESSION_TOKEN=$SessionToken" >> $GITHUB_ENV
+
+      - name: Work with EC2 instances
+        id: work-with-ec2-instances
+        run: |
+          export AWS_ACCESS_KEY_ID=${{ env.AWS_ACCESS_KEY_ID }}
+          export AWS_SECRET_ACCESS_KEY=${{ env.AWS_SECRET_ACCESS_KEY }}
+          export AWS_SESSION_TOKEN=${{ env.AWS_SESSION_TOKEN }}
+          export AWS_DEFAULT_REGION=${{ env.AWS_REGION }}
+          #env | grep AWS
+          #echo ""
+          #aws ec2 describe-instances --instance-ids i-035f07540cf5e1790
+          #echo ""
+          #aws ec2 describe-instances --filters=Name=tag:Name,Values=johnsnowlabsDev
+          export inputInstanceId=${{ github.event.inputs.instanceid }}
+          export instanceId=${inputInstanceId:-${{ secrets.EC_INSTANCE_ID }}}
+          echo "InstanceId = $instanceId"
+          instanceId=$(aws ec2 describe-instances --instance-ids=$instanceId | jq -r .Reservations[].Instances[].InstanceId)
+          echo "InstanceId = $instanceId"
+          if [[ "$instanceId" == "" || "$instanceId" == "null" ]]; then
+            echo "No instance with ID '$instanceId' found !"; exit 1
+          fi
+          echo "Got InstanceID $instanceId"  
+          case ${{ github.event.inputs.action }} in
+            START)
+              command="aws ec2 start-instances --instance-ids $instanceId"
+              ;;
+            STOP)
+              command="aws ec2 stop-instances --instance-ids $instanceId"
+              ;;
+            *)
+              echo -n "Unknown action; exiting"; exit 1
+              ;;
+          esac
+          echo "Running '$command'..."
+          $command
+

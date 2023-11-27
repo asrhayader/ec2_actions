@@ -13,12 +13,6 @@ locals {
 #    actions   = ["ec2:DescribeInstances","ec2:StopInstances","ec2:StartInstances","route53:ListResourceRecordSets","route53:ChangeResourceRecordSets"]
     resources = ["*"]
     }
-#    , 
-#    {
-#    effect    = "Allow"
-#    actions   = ["secretsmanager:GetSecretValue"]
-#    resources = ["arn:aws:secretsmanager:${var.aws_region}:${var.aws_account}:secret:dev/ec2/ec2-instance-MtFIDy"]
-#    }
   ]
 }
 
@@ -51,28 +45,6 @@ data "aws_iam_policy_document" "github_trust" {
       values   = ["repo:${local.github_organization}/${local.github_repo}:*"]
     }
   }
-}
-
-resource "aws_cloudwatch_log_group" "ec2-instance" {
-  name = "/ec2/ec2-instance"
-  retention_in_days = 7
-}
-
-resource "aws_iam_policy" "ec2-instance" {
-  name        = "TF-EC2-Instance-Access"
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = [
-          "logs:*",
-        ]
-        Effect   = "Allow"
-        Resource = "arn:aws:logs:*:*:log-group:/ec2/ec2-instance:log-stream:*"
-      },
-    ]
-  })
 }
 
 resource "aws_iam_role" "github" {

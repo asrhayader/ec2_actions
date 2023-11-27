@@ -63,7 +63,7 @@ jobs:
         id: work-with-ec2-instances
         run: |
           #Check AWS env variables
-          env | grep AWS
+          #env | grep AWS
           
           #configure instanceID variable
           export inputInstanceId=${{ github.event.inputs.instanceid }}
@@ -72,7 +72,7 @@ jobs:
 
           #Get instance state
           state=$(aws ec2 describe-instances --instance-ids=$instanceId | jq -r .Reservations[].Instances[])
-          echo "Got State <<<$state>>>"  
+          #echo "Got State <<<$state>>>"  
           if [[ "$state" == "" || "$state" == "null" ]]; then
             echo "No instance with ID '$instanceId' found !"; exit 1
           fi

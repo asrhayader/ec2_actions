@@ -11,8 +11,7 @@ on:
       instanceid:
         type: string
         description: Instance ID
-        default:
-          ""
+        default: ""
 
 permissions:
   id-token: write
